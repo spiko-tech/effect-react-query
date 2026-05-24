@@ -1,6 +1,7 @@
 # API Reference
 
 ## Table of Contents
+
 - [useEffectQuery](#useeffectquery)
 - [useEffectSuspenseQuery](#useeffectsuspensequery)
 - [useEffectQueries](#useeffectqueries)
