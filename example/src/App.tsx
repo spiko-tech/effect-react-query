@@ -3,7 +3,7 @@ import {
   useEffectMutation,
   useEffectQueries,
   useEffectSuspenseQuery,
-} from "@antomorel/effect-react-query";
+} from "@spiko-tech/effect-react-query";
 import { Effect, Match } from "effect";
 import { apiClient } from "./client";
 
