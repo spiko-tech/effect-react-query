@@ -8,7 +8,7 @@ import type {
   UseEffectQueryOptions,
   UseEffectQueryResult,
 } from "../src";
-import { useEffectQuery } from "../src";
+import { skipToken, useEffectQuery } from "../src";
 import { createWrapper } from "./utils";
 
 // Define errors using Schema.TaggedError
@@ -405,5 +405,111 @@ describe("useEffectQuery type-level tests", () => {
     };
 
     expect(checkDataType).toBeDefined();
+  });
+});
+
+// ============================================================================
+// skipToken Tests
+// ============================================================================
+
+describe("useEffectQuery with skipToken", () => {
+  it("should skip the query when skipToken is passed", async () => {
+    const { result } = renderHook(
+      () =>
+        useEffectQuery({
+          queryKey: ["user", "skipped"],
+          queryFn: skipToken,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    // Query should be in pending state (not loading, not fetched)
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+  });
+
+  it("should conditionally skip based on truthy/falsy value", async () => {
+    const userId: string | null = null;
+
+    const { result } = renderHook(
+      () =>
+        useEffectQuery({
+          queryKey: ["user", userId],
+          queryFn: userId ? () => Effect.succeed({ id: userId, name: "User" }) : skipToken,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    // Query should be skipped
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isFetching).toBe(false);
+  });
+
+  it("should execute query when condition becomes truthy", async () => {
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string | null }) =>
+        useEffectQuery({
+          queryKey: ["user", userId],
+          queryFn: userId ? () => Effect.succeed({ id: userId, name: "User" }) : skipToken,
+        }),
+      {
+        wrapper: createWrapper(),
+        initialProps: { userId: null as string | null },
+      },
+    );
+
+    // Initially skipped
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isFetching).toBe(false);
+
+    // Re-render with a valid userId
+    rerender({ userId: "123" });
+
+    // Now it should fetch
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data).toEqual({ id: "123", name: "User" });
+  });
+
+  it("should compile: skipToken without runtime option", () => {
+    // This is a type-level test - when queryFn is skipToken, runtime should not be required
+    type Options = UseEffectQueryOptions<
+      { id: string; name: string },
+      NetworkError,
+      { id: string; name: string },
+      ["user", string],
+      UserService // Has requirements, but skipToken should not require runtime
+    >;
+
+    const _options: Options = {
+      queryKey: ["user", "123"],
+      queryFn: skipToken,
+      // runtime is NOT required when using skipToken
+    };
+
+    expect(_options).toBeDefined();
+    expect(_options.queryFn).toBe(skipToken);
+  });
+
+  it("should not allow runtime with skipToken (type-level test)", () => {
+    // This test verifies the type constraint - runtime?: never when using skipToken
+    // The following would cause a TypeScript error:
+    // const _invalid: UseEffectQueryOptions<string, Error, string, ["test"], UserService> = {
+    //   queryKey: ["test"],
+    //   queryFn: skipToken,
+    //   runtime: someRuntime, // Error: Type 'Runtime<UserService>' is not assignable to type 'undefined'
+    // };
+
+    // We can only test that skipToken without runtime compiles
+    const _valid: UseEffectQueryOptions<string, Error, string, ["test"], UserService> = {
+      queryKey: ["test"],
+      queryFn: skipToken,
+    };
+
+    expect(_valid).toBeDefined();
   });
 });

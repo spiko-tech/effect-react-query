@@ -4,7 +4,7 @@ import type {
   DefinedInitialDataEffectQueryOptionsResult,
   UndefinedInitialDataEffectQueryOptionsResult,
 } from "../src";
-import { effectQueryOptions } from "../src";
+import { effectQueryOptions, skipToken } from "../src";
 
 // Define errors using Schema.TaggedError
 class NetworkError extends Schema.TaggedError<NetworkError>()("NetworkError", {
@@ -179,5 +179,52 @@ describe("effectQueryOptions queryKey type inference", () => {
     });
 
     expect(options.queryKey).toEqual(["user", "123", { includeDetails: true }]);
+  });
+});
+
+// ============================================================================
+// skipToken Tests
+// ============================================================================
+
+describe("effectQueryOptions with skipToken", () => {
+  it("should support skipToken as queryFn", () => {
+    const options = effectQueryOptions({
+      queryKey: ["user", "123"] as const,
+      queryFn: skipToken,
+    });
+
+    expect(options.queryKey).toEqual(["user", "123"]);
+    expect(options.queryFn).toBe(skipToken);
+  });
+
+  it("should work in factory pattern with conditional skipToken", () => {
+    const userQueryOptions = (userId: string | null) =>
+      effectQueryOptions({
+        queryKey: ["user", userId] as const,
+        queryFn: userId ? () => Effect.succeed({ id: userId, name: `User ${userId}` }) : skipToken,
+      });
+
+    const optionsWithUser = userQueryOptions("123");
+    const optionsSkipped = userQueryOptions(null);
+
+    expect(optionsWithUser.queryKey).toEqual(["user", "123"]);
+    expect(typeof optionsWithUser.queryFn).toBe("function");
+
+    expect(optionsSkipped.queryKey).toEqual(["user", null]);
+    expect(optionsSkipped.queryFn).toBe(skipToken);
+  });
+
+  it("should not require runtime when using skipToken", () => {
+    // This test verifies type constraint: runtime should not be required with skipToken
+    // even for effects that would normally require a runtime
+    const options = effectQueryOptions({
+      queryKey: ["protected-user", "123"] as const,
+      queryFn: skipToken,
+      // No runtime needed with skipToken
+    });
+
+    expect(options).toBeDefined();
+    expect(options.queryFn).toBe(skipToken);
+    expect((options as any).runtime).toBeUndefined();
   });
 });

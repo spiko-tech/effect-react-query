@@ -1,5 +1,5 @@
-import type { QueryKey } from "@tanstack/react-query";
-import { useQueries } from "@tanstack/react-query";
+import type { QueryKey, SkipToken } from "@tanstack/react-query";
+import { skipToken, useQueries } from "@tanstack/react-query";
 import type { Effect, ManagedRuntime, Runtime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type { EffectQueriesResults } from "./types";
@@ -11,8 +11,11 @@ import type { EffectQueriesResults } from "./types";
  */
 type EffectQueryOptionsBase = {
   queryKey: QueryKey;
-  queryFn: (...args: any[]) => Effect.Effect<any, any, any>;
-  runtime?: Runtime.Runtime<any> | ManagedRuntime.ManagedRuntime<any, any> | undefined;
+  queryFn: ((...args: any[]) => Effect.Effect<any, any, any>) | SkipToken;
+  runtime?:
+    | Runtime.Runtime<any>
+    | ManagedRuntime.ManagedRuntime<any, any>
+    | undefined;
 };
 
 /**
@@ -69,16 +72,28 @@ export function useEffectQueries<
   combine?: (result: EffectQueriesResults<T>) => TCombinedResult;
 }): TCombinedResult {
   const transformedQueries = options.queries.map((query) => {
-    const { queryFn, runtime, ...rest } = query as EffectQueryOptionsBase & Record<string, unknown>;
+    const { queryFn, runtime, ...rest } = query as EffectQueryOptionsBase &
+      Record<string, unknown>;
+
+    if (queryFn === skipToken) {
+      return {
+        ...rest,
+        queryFn: skipToken,
+      };
+    }
 
     return {
       ...rest,
-      queryFn: createEffectQueryFn(queryFn, runtime, (context) => context.signal),
+      queryFn: createEffectQueryFn(
+        queryFn,
+        runtime,
+        (context) => context.signal,
+      ),
     };
   });
 
   const result = useQueries({
-    queries: transformedQueries,
+    queries: transformedQueries as any,
     combine: options.combine as (result: Array<any>) => TCombinedResult,
   });
 

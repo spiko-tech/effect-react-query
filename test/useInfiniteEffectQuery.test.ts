@@ -8,7 +8,7 @@ import type {
   UseInfiniteEffectQueryOptions,
   UseInfiniteEffectQueryResult,
 } from "../src";
-import { useInfiniteEffectQuery } from "../src";
+import { skipToken, useInfiniteEffectQuery } from "../src";
 import { createWrapper } from "./utils";
 
 // Define errors using Schema.TaggedError
@@ -475,5 +475,112 @@ describe("useInfiniteEffectQuery type-level tests", () => {
     };
 
     expect(_options.initialData).toBeDefined();
+  });
+});
+
+// ============================================================================
+// skipToken Tests
+// ============================================================================
+
+describe("useInfiniteEffectQuery with skipToken", () => {
+  it("should skip the query when skipToken is passed", async () => {
+    const { result } = renderHook(
+      () =>
+        useInfiniteEffectQuery({
+          queryKey: ["posts", "skipped"],
+          queryFn: skipToken,
+          initialPageParam: 0,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    // Query should be in pending state (not loading, not fetched)
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(result.current.data).toBeUndefined();
+  });
+
+  it("should conditionally skip based on truthy/falsy value", async () => {
+    const category: string | null = null;
+
+    const { result } = renderHook(
+      () =>
+        useInfiniteEffectQuery({
+          queryKey: ["posts", category],
+          queryFn: category
+            ? ({ pageParam }) =>
+                Effect.succeed({
+                  items: [{ id: String(pageParam), title: `Post in ${category}` }],
+                  nextCursor: null,
+                })
+            : skipToken,
+          initialPageParam: 0,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    // Query should be skipped
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isFetching).toBe(false);
+  });
+
+  it("should execute query when condition becomes truthy", async () => {
+    const { result, rerender } = renderHook(
+      ({ category }: { category: string | null }) =>
+        useInfiniteEffectQuery({
+          queryKey: ["posts", category],
+          queryFn: category
+            ? ({ pageParam }) =>
+                Effect.succeed({
+                  items: [{ id: String(pageParam), title: `Post in ${category}` }],
+                  nextCursor: null,
+                })
+            : skipToken,
+          initialPageParam: 0,
+          getNextPageParam: (lastPage) => lastPage.nextCursor,
+        }),
+      {
+        wrapper: createWrapper(),
+        initialProps: { category: null },
+      },
+    );
+
+    // Initially skipped
+    expect(result.current.isPending).toBe(true);
+    expect(result.current.isFetching).toBe(false);
+
+    // Re-render with a valid category
+    rerender({ category: "tech" });
+
+    // Now it should fetch
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data?.pages[0].items[0].title).toBe("Post in tech");
+  });
+
+  it("should compile: skipToken without runtime option", () => {
+    // This is a type-level test - when queryFn is skipToken, runtime should not be required
+    type Options = UseInfiniteEffectQueryOptions<
+      PostsPage,
+      NetworkError,
+      InfiniteData<PostsPage>,
+      readonly ["posts", string],
+      number,
+      PostService // Has requirements, but skipToken should not require runtime
+    >;
+
+    const _options: Options = {
+      queryKey: ["posts", "category"] as const,
+      queryFn: skipToken,
+      initialPageParam: 0,
+      // runtime is NOT required when using skipToken
+      // getNextPageParam is also not required when using skipToken
+    };
+
+    expect(_options).toBeDefined();
+    expect(_options.queryFn).toBe(skipToken);
   });
 });
