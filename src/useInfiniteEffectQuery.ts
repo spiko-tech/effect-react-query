@@ -1,5 +1,9 @@
-import type { InfiniteData, QueryFunctionContext, QueryKey } from "@tanstack/react-query";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import type {
+  InfiniteData,
+  QueryFunctionContext,
+  QueryKey,
+} from "@tanstack/react-query";
+import { skipToken, useInfiniteQuery } from "@tanstack/react-query";
 import type { Effect, ManagedRuntime, Runtime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type {
@@ -90,7 +94,14 @@ export function useInfiniteEffectQuery<
   TPageParam = unknown,
   R = never,
 >(
-  options: UseInfiniteEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam, R>,
+  options: UseInfiniteEffectQueryOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryKey,
+    TPageParam,
+    R
+  >,
 ): UseInfiniteEffectQueryResult<TData, TError>;
 
 // Implementation
@@ -102,20 +113,52 @@ export function useInfiniteEffectQuery<
   TPageParam = unknown,
   R = never,
 >(
-  options: UseInfiniteEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam, R>,
+  options: UseInfiniteEffectQueryOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryKey,
+    TPageParam,
+    R
+  >,
 ): UseInfiniteEffectQueryResult<TData, TError> {
-  const { queryFn, runtime, ...restOptions } = options as {
-    queryFn: (
-      context: QueryFunctionContext<TQueryKey, TPageParam>,
-    ) => Effect.Effect<TQueryFnData, TError, R>;
+  const { queryFn, runtime, getNextPageParam, ...restOptions } = options as {
+    queryFn:
+      | ((
+          context: QueryFunctionContext<TQueryKey, TPageParam>,
+        ) => Effect.Effect<TQueryFnData, TError, R>)
+      | typeof skipToken;
     runtime?: Runtime.Runtime<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
+    getNextPageParam?: (
+      lastPage: TQueryFnData,
+      allPages: TQueryFnData[],
+    ) => TPageParam | undefined | null;
   } & Omit<
-    UseInfiniteEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam, R>,
-    "queryFn" | "runtime"
+    UseInfiniteEffectQueryOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryKey,
+      TPageParam,
+      R
+    >,
+    "queryFn" | "runtime" | "getNextPageParam"
   >;
+
+  if (queryFn === skipToken) {
+    return useInfiniteQuery<TQueryFnData, TError, TData, TQueryKey, TPageParam>(
+      {
+        ...restOptions,
+        queryFn: skipToken,
+        // Provide a dummy getNextPageParam when using skipToken (it won't be called)
+        getNextPageParam: getNextPageParam ?? (() => undefined),
+      },
+    );
+  }
 
   return useInfiniteQuery<TQueryFnData, TError, TData, TQueryKey, TPageParam>({
     ...restOptions,
+    getNextPageParam: getNextPageParam!,
     queryFn: createEffectQueryFn(queryFn, runtime, (context) => context.signal),
   });
 }

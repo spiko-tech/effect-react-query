@@ -1,5 +1,5 @@
 import type { QueryFunctionContext, QueryKey } from "@tanstack/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import type { Effect, ManagedRuntime, Runtime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type {
@@ -51,7 +51,13 @@ export function useEffectQuery<
   TQueryKey extends QueryKey = QueryKey,
   R = never,
 >(
-  options: DefinedInitialDataEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>,
+  options: DefinedInitialDataEffectQueryOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryKey,
+    R
+  >,
 ): DefinedUseEffectQueryResult<TData, TError>;
 
 export function useEffectQuery<
@@ -61,7 +67,13 @@ export function useEffectQuery<
   TQueryKey extends QueryKey = QueryKey,
   R = never,
 >(
-  options: UndefinedInitialDataEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>,
+  options: UndefinedInitialDataEffectQueryOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryKey,
+    R
+  >,
 ): UseEffectQueryResult<TData, TError>;
 
 export function useEffectQuery<
@@ -85,9 +97,23 @@ export function useEffectQuery<
   options: UseEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>,
 ): UseEffectQueryResult<TData, TError> {
   const { queryFn, runtime, ...restOptions } = options as {
-    queryFn: (context: QueryFunctionContext<TQueryKey>) => Effect.Effect<TQueryFnData, TError, R>;
+    queryFn:
+      | ((
+          context: QueryFunctionContext<TQueryKey>,
+        ) => Effect.Effect<TQueryFnData, TError, R>)
+      | typeof skipToken;
     runtime?: Runtime.Runtime<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
-  } & Omit<UseEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>, "queryFn" | "runtime">;
+  } & Omit<
+    UseEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>,
+    "queryFn" | "runtime"
+  >;
+
+  if (queryFn === skipToken) {
+    return useQuery<TQueryFnData, TError, TData, TQueryKey>({
+      ...restOptions,
+      queryFn: skipToken,
+    });
+  }
 
   return useQuery<TQueryFnData, TError, TData, TQueryKey>({
     ...restOptions,

@@ -2,7 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { Context, Effect, Layer, ManagedRuntime, Match, Schema } from "effect";
 import { describe, expect, it, vi } from "vitest";
 import type { UseEffectQueryOptionsForUseQueries } from "../src";
-import { useEffectQueries } from "../src";
+import { skipToken, useEffectQueries } from "../src";
 import { createWrapper } from "./utils";
 
 // Define errors using Schema.TaggedError
@@ -412,5 +412,128 @@ describe("useEffectQueries type-level tests", () => {
     };
 
     expect(_options).toBeDefined();
+  });
+});
+
+// ============================================================================
+// skipToken Tests
+// ============================================================================
+
+describe("useEffectQueries with skipToken", () => {
+  it("should skip individual queries when skipToken is passed", async () => {
+    const { result } = renderHook(
+      () =>
+        useEffectQueries({
+          queries: [
+            {
+              queryKey: ["user", "1"],
+              queryFn: () => Effect.succeed({ id: "1", name: "Alice" }),
+            },
+            {
+              queryKey: ["user", "skipped"],
+              queryFn: skipToken,
+            },
+          ],
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current[0].isSuccess).toBe(true);
+    });
+
+    // First query should succeed
+    expect(result.current[0].data).toEqual({ id: "1", name: "Alice" });
+
+    // Second query should be skipped
+    expect(result.current[1].isPending).toBe(true);
+    expect(result.current[1].isFetching).toBe(false);
+    expect(result.current[1].data).toBeUndefined();
+  });
+
+  it("should conditionally skip based on truthy/falsy value", async () => {
+    const userIds: Array<string | null> = ["1", null, "3"];
+
+    const { result } = renderHook(
+      () =>
+        useEffectQueries({
+          queries: userIds.map((userId) => ({
+            queryKey: ["user", userId] as const,
+            queryFn: userId ? () => Effect.succeed({ id: userId, name: `User ${userId}` }) : skipToken,
+          })),
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current[0].isSuccess).toBe(true);
+      expect(result.current[2].isSuccess).toBe(true);
+    });
+
+    // First and third queries should succeed
+    expect(result.current[0].data).toEqual({ id: "1", name: "User 1" });
+    expect(result.current[2].data).toEqual({ id: "3", name: "User 3" });
+
+    // Second query should be skipped
+    expect(result.current[1].isPending).toBe(true);
+    expect(result.current[1].isFetching).toBe(false);
+  });
+
+  it("should work with combine function when some queries are skipped", async () => {
+    const { result } = renderHook(
+      () =>
+        useEffectQueries({
+          queries: [
+            {
+              queryKey: ["user", "1"],
+              queryFn: () => Effect.succeed({ id: "1", name: "Alice" }),
+            },
+            {
+              queryKey: ["user", "skipped"],
+              queryFn: skipToken,
+            },
+            {
+              queryKey: ["user", "3"],
+              queryFn: () => Effect.succeed({ id: "3", name: "Charlie" }),
+            },
+          ],
+          combine: (results) => ({
+            users: results.map((r) => r.data).filter(Boolean),
+            pendingCount: results.filter((r) => r.isPending && !r.isFetching).length,
+            successCount: results.filter((r) => r.isSuccess).length,
+          }),
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.successCount).toBe(2);
+    });
+
+    expect(result.current.users).toEqual([
+      { id: "1", name: "Alice" },
+      { id: "3", name: "Charlie" },
+    ]);
+    expect(result.current.pendingCount).toBe(1); // The skipped query
+  });
+
+  it("should compile: skipToken without runtime option", () => {
+    // Type-level test: when queryFn is skipToken, runtime should not be required
+    type Options = UseEffectQueryOptionsForUseQueries<
+      { id: string; name: string },
+      NetworkError,
+      { id: string; name: string },
+      ["user", string],
+      UserService // Has requirements, but skipToken should not require runtime
+    >;
+
+    const _options: Options = {
+      queryKey: ["user", "123"],
+      queryFn: skipToken,
+      // runtime is NOT required when using skipToken
+    };
+
+    expect(_options).toBeDefined();
+    expect(_options.queryFn).toBe(skipToken);
   });
 });

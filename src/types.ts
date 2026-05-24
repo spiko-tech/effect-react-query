@@ -10,6 +10,7 @@ import type {
   QueriesPlaceholderDataFunction,
   QueryFunctionContext,
   QueryKey,
+  SkipToken,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseMutationOptions,
@@ -78,13 +79,22 @@ export type UseEffectQueryOptions<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
   R = never,
-> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryFn"> & {
-  /**
-   * The query function that returns an Effect.
-   * Receives the same QueryFunctionContext as standard useQuery.
-   */
-  queryFn: (context: QueryFunctionContext<TQueryKey>) => Effect.Effect<TQueryFnData, TError, R>;
-} & RuntimeOption<R>;
+> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryFn"> &
+  (
+    | ({
+        /**
+         * The query function that returns an Effect.
+         * Receives the same QueryFunctionContext as standard useQuery.
+         */
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+      } & RuntimeOption<R>)
+    | {
+        queryFn: SkipToken;
+        runtime?: never;
+      }
+  );
 
 /**
  * Options for useEffectQuery with defined initial data.
@@ -96,9 +106,16 @@ export type DefinedInitialDataEffectQueryOptions<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
   R = never,
-> = Omit<UseEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>, "initialData"> & {
+> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryFn" | "initialData"> & {
   initialData: NonUndefinedGuard<TQueryFnData> | (() => NonUndefinedGuard<TQueryFnData>);
-};
+} & (
+    | ({
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+      } & RuntimeOption<R>)
+    | { queryFn: SkipToken; runtime?: never }
+  );
 
 /**
  * Options for useEffectQuery with undefined initial data.
@@ -109,12 +126,19 @@ export type UndefinedInitialDataEffectQueryOptions<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
   R = never,
-> = Omit<UseEffectQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>, "initialData"> & {
+> = Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryFn" | "initialData"> & {
   initialData?:
     | undefined
     | InitialDataFunction<NonUndefinedGuard<TQueryFnData>>
     | NonUndefinedGuard<TQueryFnData>;
-};
+} & (
+    | ({
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+      } & RuntimeOption<R>)
+    | { queryFn: SkipToken; runtime?: never }
+  );
 
 /**
  * The result of useEffectQuery hook.
@@ -233,26 +257,35 @@ export type UseInfiniteEffectQueryOptions<
 > = Omit<
   UseInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>,
   "queryFn" | "getNextPageParam" | "getPreviousPageParam"
-> & {
-  /**
-   * The query function that returns an Effect.
-   * Receives the same QueryFunctionContext as standard useInfiniteQuery,
-   * including pageParam for pagination.
-   */
-  queryFn: (
-    context: QueryFunctionContext<TQueryKey, TPageParam>,
-  ) => Effect.Effect<TQueryFnData, TError, R>;
-  /**
-   * Function to get the next page parameter.
-   * Uses NoInfer to ensure TQueryFnData is inferred from queryFn, not from this callback.
-   */
-  getNextPageParam: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
-  /**
-   * Optional function to get the previous page parameter.
-   * Uses NoInfer to ensure TQueryFnData is inferred from queryFn, not from this callback.
-   */
-  getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
-} & RuntimeOption<R>;
+> &
+  (
+    | ({
+        /**
+         * The query function that returns an Effect.
+         * Receives the same QueryFunctionContext as standard useInfiniteQuery,
+         * including pageParam for pagination.
+         */
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey, TPageParam>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+        /**
+         * Function to get the next page parameter.
+         * Uses NoInfer to ensure TQueryFnData is inferred from queryFn, not from this callback.
+         */
+        getNextPageParam: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+        /**
+         * Optional function to get the previous page parameter.
+         * Uses NoInfer to ensure TQueryFnData is inferred from queryFn, not from this callback.
+         */
+        getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+      } & RuntimeOption<R>)
+    | {
+        queryFn: SkipToken;
+        runtime?: never;
+        getNextPageParam?: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+        getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+      }
+  );
 
 /**
  * Options for useInfiniteEffectQuery with defined initial data.
@@ -272,15 +305,24 @@ export type DefinedInitialDataInfiniteEffectQueryOptions<
   UseInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>,
   "queryFn" | "getNextPageParam" | "getPreviousPageParam" | "initialData"
 > & {
-  queryFn: (
-    context: QueryFunctionContext<TQueryKey, TPageParam>,
-  ) => Effect.Effect<TQueryFnData, TError, R>;
-  getNextPageParam: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
-  getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
   initialData:
     | NonUndefinedGuard<InfiniteData<TQueryFnData, TPageParam>>
     | (() => NonUndefinedGuard<InfiniteData<TQueryFnData, TPageParam>>);
-} & RuntimeOption<R>;
+} & (
+    | ({
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey, TPageParam>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+        getNextPageParam: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+        getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+      } & RuntimeOption<R>)
+    | {
+        queryFn: SkipToken;
+        runtime?: never;
+        getNextPageParam?: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+        getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+      }
+  );
 
 /**
  * Options for useInfiniteEffectQuery with undefined initial data.
@@ -299,16 +341,25 @@ export type UndefinedInitialDataInfiniteEffectQueryOptions<
   UseInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>,
   "queryFn" | "getNextPageParam" | "getPreviousPageParam" | "initialData"
 > & {
-  queryFn: (
-    context: QueryFunctionContext<TQueryKey, TPageParam>,
-  ) => Effect.Effect<TQueryFnData, TError, R>;
-  getNextPageParam: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
-  getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
   initialData?:
     | undefined
     | InitialDataFunction<NonUndefinedGuard<InfiniteData<TQueryFnData, TPageParam>>>
     | NonUndefinedGuard<InfiniteData<TQueryFnData, TPageParam>>;
-} & RuntimeOption<R>;
+} & (
+    | ({
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey, TPageParam>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+        getNextPageParam: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+        getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+      } & RuntimeOption<R>)
+    | {
+        queryFn: SkipToken;
+        runtime?: never;
+        getNextPageParam?: GetNextPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+        getPreviousPageParam?: GetPreviousPageParamFunction<TPageParam, NoInfer<TQueryFnData>>;
+      }
+  );
 
 /**
  * The result of useInfiniteEffectQuery hook.
@@ -463,14 +514,23 @@ export type UseEffectQueryOptionsForUseQueries<
   "queryFn" | "placeholderData" | "subscribed"
 > & {
   /**
-   * The query function that returns an Effect.
-   */
-  queryFn: (context: QueryFunctionContext<TQueryKey>) => Effect.Effect<TQueryFnData, TError, R>;
-  /**
    * Placeholder data for this query.
    */
   placeholderData?: TQueryFnData | QueriesPlaceholderDataFunction<TQueryFnData>;
-} & RuntimeOption<R>;
+} & (
+    | ({
+        /**
+         * The query function that returns an Effect.
+         */
+        queryFn: (
+          context: QueryFunctionContext<TQueryKey>,
+        ) => Effect.Effect<TQueryFnData, TError, R>;
+      } & RuntimeOption<R>)
+    | {
+        queryFn: SkipToken;
+        runtime?: never;
+      }
+  );
 
 /**
  * Maps an array of Effect query options to an array of UseQueryResult.
@@ -478,7 +538,9 @@ export type UseEffectQueryOptionsForUseQueries<
  * Infers data and error types from the queryFn's Effect return type.
  */
 export type EffectQueriesResults<
-  T extends ReadonlyArray<{ queryFn: (...args: any) => Effect.Effect<any, any, any> }>,
+  T extends ReadonlyArray<{
+    queryFn?: ((...args: any) => Effect.Effect<any, any, any>) | SkipToken;
+  }>,
 > = {
   -readonly [K in keyof T]: T[K] extends {
     queryFn: (...args: any) => Effect.Effect<infer TData, infer TError, any>;

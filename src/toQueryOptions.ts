@@ -1,4 +1,6 @@
-import type { FetchQueryOptions, QueryKey } from "@tanstack/react-query";
+import type { FetchQueryOptions, QueryFunctionContext, QueryKey, SkipToken } from "@tanstack/react-query";
+import { skipToken } from "@tanstack/react-query";
+import type { Effect, ManagedRuntime, Runtime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type {
   DefinedInitialDataEffectQueryOptionsResult,
@@ -52,7 +54,20 @@ export function toQueryOptions<TQueryFnData, TError, TData, TQueryKey extends Qu
 export function toQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey, R>(
   options: UseEffectQueryOptionsResult<TQueryFnData, TError, TData, TQueryKey, R>,
 ): FetchQueryOptions<TQueryFnData, TError, TQueryFnData, TQueryKey> {
-  const { queryFn, runtime, select: _select, ...restOptions } = options;
+  const { queryFn, runtime, select: _select, ...restOptions } = options as {
+    queryFn:
+      | ((context: QueryFunctionContext<TQueryKey>) => Effect.Effect<TQueryFnData, TError, R>)
+      | SkipToken;
+    runtime?: Runtime.Runtime<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
+    select?: unknown;
+  } & Omit<UseEffectQueryOptionsResult<TQueryFnData, TError, TData, TQueryKey, R>, "queryFn" | "runtime" | "select">;
+
+  if (queryFn === skipToken) {
+    return {
+      ...restOptions,
+      queryFn: skipToken,
+    };
+  }
 
   return {
     ...restOptions,
