@@ -1,6 +1,7 @@
-import { FetchHttpClient, HttpApiClient } from "@effect/platform";
-import { Api } from "./api.js";
 import { Effect } from "effect";
+import { FetchHttpClient } from "effect/unstable/http";
+import { HttpApiClient } from "effect/unstable/httpapi";
+import { Api } from "./api.js";
 
 export const apiClient = HttpApiClient.make(Api, {
   baseUrl: "http://localhost:3000",
