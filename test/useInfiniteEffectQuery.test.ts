@@ -27,10 +27,10 @@ interface PostsPage {
 }
 
 // Define a service for testing runtime requirements
-class PostService extends Context.Tag("PostService")<
+class PostService extends Context.Service<
   PostService,
   { readonly getPosts: (cursor: number) => Effect.Effect<PostsPage, NetworkError> }
->() {}
+>()("PostService") {}
 
 // ============================================================================
 // Hook Behavior Tests
@@ -126,7 +126,8 @@ describe("useInfiniteEffectQuery", () => {
       () =>
         useInfiniteEffectQuery({
           queryKey: ["posts", "error-match"],
-          queryFn: () => Effect.fail(new NetworkError({ message: "Timeout" })),
+          queryFn: (): Effect.Effect<never, NetworkError | NotFoundError> =>
+            Effect.fail(new NetworkError({ message: "Timeout" })),
           initialPageParam: 0,
           getNextPageParam: () => null,
           retry: false,
@@ -140,6 +141,7 @@ describe("useInfiniteEffectQuery", () => {
 
     const matchResult = Match.valueTags(result.current.error!, {
       NetworkError: (e) => `Network: ${e.message}`,
+      NotFoundError: (e) => `NotFound: ${e.resourceId}`,
     });
 
     expect(matchResult).toBe("Network: Timeout");

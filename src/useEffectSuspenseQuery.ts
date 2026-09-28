@@ -1,6 +1,6 @@
 import type { QueryFunctionContext, QueryKey } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import type { Effect, ManagedRuntime, Runtime } from "effect";
+import type { Context, Effect, ManagedRuntime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type { UseEffectSuspenseQueryOptions, UseEffectSuspenseQueryResult } from "./types";
 
@@ -25,7 +25,7 @@ import type { UseEffectSuspenseQueryOptions, UseEffectSuspenseQueryResult } from
  * const query = useEffectSuspenseQuery({
  *   queryKey: ["user", userId],
  *   queryFn: () => fetchUserWithService(userId), // Effect<User, NetworkError, UserService>
- *   runtime: myRuntime, // Runtime<UserService>
+ *   runtime: myRuntime, // Context<UserService> or ManagedRuntime<UserService>
  * });
  * ```
  */
@@ -40,7 +40,7 @@ export function useEffectSuspenseQuery<
 ): UseEffectSuspenseQueryResult<TData, TError> {
   const { queryFn, runtime, ...restOptions } = options as {
     queryFn: (context: QueryFunctionContext<TQueryKey>) => Effect.Effect<TQueryFnData, TError, R>;
-    runtime?: Runtime.Runtime<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
+    runtime?: Context.Context<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
   } & Omit<
     UseEffectSuspenseQueryOptions<TQueryFnData, TError, TData, TQueryKey, R>,
     "queryFn" | "runtime"

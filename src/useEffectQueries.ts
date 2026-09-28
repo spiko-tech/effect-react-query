@@ -1,6 +1,6 @@
 import type { QueryKey } from "@tanstack/react-query";
 import { useQueries } from "@tanstack/react-query";
-import type { Effect, ManagedRuntime, Runtime } from "effect";
+import type { Context, Effect, ManagedRuntime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type { EffectQueriesResults } from "./types";
 
@@ -12,7 +12,7 @@ import type { EffectQueriesResults } from "./types";
 type EffectQueryOptionsBase = {
   queryKey: QueryKey;
   queryFn: (...args: any[]) => Effect.Effect<any, any, any>;
-  runtime?: Runtime.Runtime<any> | ManagedRuntime.ManagedRuntime<any, any> | undefined;
+  runtime?: Context.Context<any> | ManagedRuntime.ManagedRuntime<any, any> | undefined;
 };
 
 /**

@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Cause, Effect, Exit, ManagedRuntime, Runtime } from "effect";
-import { hasProperty } from "effect/Predicate";
+import { Cause, Context, Effect, Exit } from "effect";
 import type { UseEffectMutationOptions, UseEffectMutationResult } from "./types";
 
 /**
@@ -27,7 +26,7 @@ import type { UseEffectMutationOptions, UseEffectMutationResult } from "./types"
  * // Effect with requirements - runtime is required
  * const mutation = useEffectMutation({
  *   mutationFn: createUserWithService, // Effect<User, NetworkError, UserService>
- *   runtime: myRuntime, // Runtime<UserService>
+ *   runtime: myRuntime, // Context<UserService> or ManagedRuntime<UserService>
  *   onError: Match.valueTags({
  *     NetworkError: (e) => toast.error(e.message),
  *   }),
@@ -49,10 +48,10 @@ export function useEffectMutation<TData, TError, TVariables = void, TContext = u
       let exit: Exit.Exit<TData, unknown>;
 
       if (runtime) {
-        if (hasProperty(runtime, ManagedRuntime.TypeId)) {
-          exit = await runtime.runPromiseExit(effect);
+        if (Context.isContext(runtime)) {
+          exit = await Effect.runPromiseExitWith(runtime)(effect);
         } else {
-          exit = await Runtime.runPromiseExit(runtime)(effect);
+          exit = await runtime.runPromiseExit(effect);
         }
       } else {
         exit = await Effect.runPromiseExit(effect as Effect.Effect<TData, TError, never>);
@@ -64,7 +63,7 @@ export function useEffectMutation<TData, TError, TVariables = void, TContext = u
 
       // Check for interruption - don't call onError, just hang
       // React Query will handle cleanup
-      if (Cause.isInterruptedOnly(cause)) {
+      if (Cause.hasInterruptsOnly(cause)) {
         return new Promise<TData>(() => {
           // Never resolves - mutation is cancelled
         });

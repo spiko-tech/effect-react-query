@@ -21,10 +21,10 @@ interface PostsPage {
 }
 
 // Define a service for testing runtime requirements
-class PostService extends Context.Tag("PostService")<
+class PostService extends Context.Service<
   PostService,
   { readonly getPosts: (cursor: number) => Effect.Effect<PostsPage, NetworkError> }
->() {}
+>()("PostService") {}
 
 // ============================================================================
 // Hook Behavior Tests

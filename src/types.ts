@@ -21,7 +21,7 @@ import type {
   UseSuspenseQueryOptions,
   UseSuspenseQueryResult,
 } from "@tanstack/react-query";
-import type { Effect, ManagedRuntime, Runtime } from "effect";
+import type { Context, Effect, ManagedRuntime } from "effect";
 
 /**
  * Options for useEffectMutation hook.
@@ -47,11 +47,11 @@ export type UseEffectMutationOptions<
 
 /**
  * Runtime option - required when R is not never, forbidden when R is never.
- * Accepts either a Runtime or a ManagedRuntime.
+ * Accepts either a Context or a ManagedRuntime.
  */
 export type RuntimeOption<R> = [R] extends [never]
   ? { runtime?: undefined }
-  : { runtime: Runtime.Runtime<R> | ManagedRuntime.ManagedRuntime<R, unknown> };
+  : { runtime: Context.Context<R> | ManagedRuntime.ManagedRuntime<R, unknown> };
 
 /**
  * The result of useEffectMutation hook.

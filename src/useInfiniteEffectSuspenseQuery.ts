@@ -1,6 +1,6 @@
 import type { InfiniteData, QueryFunctionContext, QueryKey } from "@tanstack/react-query";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-import type { Effect, ManagedRuntime, Runtime } from "effect";
+import type { Context, Effect, ManagedRuntime } from "effect";
 import { createEffectQueryFn } from "./internal/createEffectQueryFn";
 import type {
   UseInfiniteEffectSuspenseQueryOptions,
@@ -61,7 +61,7 @@ export function useInfiniteEffectSuspenseQuery<
     queryFn: (
       context: QueryFunctionContext<TQueryKey, TPageParam>,
     ) => Effect.Effect<TQueryFnData, TError, R>;
-    runtime?: Runtime.Runtime<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
+    runtime?: Context.Context<R> | ManagedRuntime.ManagedRuntime<R, unknown>;
   } & Omit<
     UseInfiniteEffectSuspenseQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam, R>,
     "queryFn" | "runtime"

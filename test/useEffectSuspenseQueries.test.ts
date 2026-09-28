@@ -11,10 +11,10 @@ class NetworkError extends Schema.TaggedError<NetworkError>()("NetworkError", {
 }) {}
 
 // Define a service for testing runtime requirements
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, NetworkError> }
->() {}
+>()("UserService") {}
 
 // ============================================================================
 // Hook Behavior Tests
@@ -139,8 +139,7 @@ describe("useEffectSuspenseQueries", () => {
     // This should not throw or cause issues
     unmount();
 
-    // Test passes if we reach here without crashing
-    expect(true).toBe(true);
+    expect(effectStarted).toBe(true);
   });
 });
 

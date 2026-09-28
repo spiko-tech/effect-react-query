@@ -15,10 +15,10 @@ class NotFoundError extends Schema.TaggedError<NotFoundError>()("NotFoundError",
 }) {}
 
 // Define a service for testing runtime requirements
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, NetworkError> }
->() {}
+>()("UserService") {}
 
 // ============================================================================
 // Hook Behavior Tests
@@ -181,7 +181,10 @@ describe("useEffectSuspenseQuery type-level tests", () => {
   });
 
   it("should have data always defined in result type", () => {
-    type Result = UseEffectSuspenseQueryResult<{ id: string; name: string }, NetworkError>;
+    type Result = UseEffectSuspenseQueryResult<
+      { id: string; name: string },
+      NetworkError | NotFoundError
+    >;
 
     const checkDataType = (result: Result) => {
       const _data: { id: string; name: string } = result.data;

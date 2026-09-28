@@ -13,10 +13,10 @@ class NotFoundError extends Schema.TaggedError<NotFoundError>()("NotFoundError",
 }) {}
 
 // Define a service for testing runtime requirements
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, NetworkError> }
->() {}
+>()("UserService") {}
 
 function createTestQueryClient(): QueryClient {
   return new QueryClient({
@@ -169,7 +169,7 @@ describe("toQueryOptions with runtime", () => {
     await runtime.dispose();
   });
 
-  it("should work with standard Runtime", async () => {
+  it("should work with a Context", async () => {
     const queryClient = createTestQueryClient();
 
     const UserServiceLive = Layer.succeed(
@@ -179,7 +179,7 @@ describe("toQueryOptions with runtime", () => {
       }),
     );
 
-    const runtime = await Effect.runPromise(Layer.toRuntime(UserServiceLive).pipe(Effect.scoped));
+    const runtime = await Effect.runPromise(Layer.build(UserServiceLive).pipe(Effect.scoped));
 
     const options = effectQueryOptions({
       queryKey: ["user-standard-runtime", "789"] as const,

@@ -62,7 +62,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.99.2",
-    "effect": "^3.21.1"
+    "effect": "^4.0.0-rc.117"
   },
   "engines": {
     "node": ">=20"

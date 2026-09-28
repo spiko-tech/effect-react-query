@@ -11,18 +11,18 @@ class NetworkError extends Schema.TaggedError<NetworkError>()("NetworkError", {
 }) {}
 
 class ValidationError extends Schema.TaggedError<ValidationError>()("ValidationError", {
-  fields: Schema.Record({ key: Schema.String, value: Schema.String }),
+  fields: Schema.Record(Schema.String, Schema.String),
 }) {}
 
 // Define a service for testing runtime requirements
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   {
     readonly createUser: (
       name: string,
     ) => Effect.Effect<{ id: string; name: string }, NetworkError>;
   }
->() {}
+>()("UserService") {}
 
 // ============================================================================
 // Hook Behavior Tests

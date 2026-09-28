@@ -349,17 +349,17 @@ const mutation = useEffectMutation({
 
 # Dependency Injection
 
-When Effects have service requirements, provide a `ManagedRuntime` or `Runtime`:
+When Effects have service requirements, provide a `ManagedRuntime` or a `Context`:
 
 ```ts
 import { Context, Effect, Layer, ManagedRuntime } from "effect";
 import { useEffectQuery } from "@effect-react-query";
 
 // Define a service
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   { readonly getUser: (id: string) => Effect.Effect<User, NetworkError> }
->() {}
+>()("UserService") {}
 
 // Create the layer
 const UserServiceLive = Layer.succeed(

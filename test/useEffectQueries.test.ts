@@ -15,10 +15,10 @@ class NotFoundError extends Schema.TaggedError<NotFoundError>()("NotFoundError",
 }) {}
 
 // Define a service for testing runtime requirements
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, NetworkError> }
->() {}
+>()("UserService") {}
 
 // ============================================================================
 // Hook Behavior Tests
@@ -174,6 +174,8 @@ describe("useEffectQueries", () => {
     await waitFor(() => {
       expect(effectStarted).toBe(true);
     });
+
+    expect(result.current[0].isPending).toBe(true);
 
     unmount();
 

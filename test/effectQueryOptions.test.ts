@@ -12,10 +12,10 @@ class NetworkError extends Schema.TaggedError<NetworkError>()("NetworkError", {
 }) {}
 
 // Define a service for testing runtime requirements
-class UserService extends Context.Tag("UserService")<
+class UserService extends Context.Service<
   UserService,
   { readonly getUser: (id: string) => Effect.Effect<{ id: string; name: string }, NetworkError> }
->() {}
+>()("UserService") {}
 
 describe("effectQueryOptions", () => {
   it("should export effectQueryOptions", () => {
