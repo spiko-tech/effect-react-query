@@ -49,7 +49,7 @@
     "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.31.0",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^22.19.19",
+    "@types/node": "^24.19.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "bunchee": "^6.10.0",
@@ -65,6 +65,6 @@
     "effect": "^4.0.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   }
 }
