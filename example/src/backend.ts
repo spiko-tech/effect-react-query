@@ -1,6 +1,7 @@
-import { HttpApiBuilder, HttpApiError, HttpServer } from "@effect/platform";
 import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
 import { Effect, Layer, Match } from "effect";
+import { HttpRouter } from "effect/http";
+import { HttpApiBuilder, HttpApiError } from "effect/http-api";
 import { Api } from "./api";
 
 export const ApiGroupLive = HttpApiBuilder.group(Api, "api", (handlers) =>
@@ -19,17 +20,10 @@ export const ApiGroupLive = HttpApiBuilder.group(Api, "api", (handlers) =>
   ),
 );
 
-const ApiLive = HttpApiBuilder.api(Api).pipe(Layer.provide(ApiGroupLive));
+const ApiLive = HttpApiBuilder.layer(Api).pipe(Layer.provide(ApiGroupLive));
 
-const ServerLive = HttpApiBuilder.serve().pipe(
-  Layer.provide(
-    HttpApiBuilder.middlewareCors({
-      allowedOrigins: ["http://localhost:3200"],
-    }),
-  ),
-  Layer.provide(ApiLive),
-  HttpServer.withLogAddress,
-  Layer.provide(BunHttpServer.layer({ port: 3000 })),
-);
+const ServerLive = HttpRouter.serve(
+  Layer.mergeAll(ApiLive, HttpRouter.cors({ allowedOrigins: ["http://localhost:3200"] })),
+).pipe(Layer.provide(BunHttpServer.layer({ port: 3000 })));
 
 BunRuntime.runMain(Layer.launch(ServerLive));

@@ -9,10 +9,10 @@
     "build": "bun build ./src/index.html --outdir=dist --sourcemap --target=browser --minify --define:process.env.NODE_ENV='\"production\"' --env='BUN_PUBLIC_*'"
   },
   "dependencies": {
-    "@effect/platform": "^0.96.1",
-    "@effect/platform-bun": "^0.89.0",
-    "@spiko-tech/effect-react-query": "^1.1.0",
-    "effect": "^3.21.2",
+    "@effect/platform-bun": "4.0.0",
+    "@spiko-tech/effect-react-query": "^2.0.0",
+    "@tanstack/react-query": "^5.104.0",
+    "effect": "4.0.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
